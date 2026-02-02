@@ -1,38 +1,46 @@
 import json  # Import for JSON serialization
-from ibm_watsonx_ai.foundation_models import ModelInference
-from ibm_watsonx_ai import Credentials, APIClient
+#from ibm_watsonx_ai.foundation_models import ModelInference
+#from ibm_watsonx_ai import Credentials, APIClient
 from typing import Dict, List
 from langchain.schema import Document
 
-credentials = Credentials(
-                   url = "https://us-south.ml.cloud.ibm.com",
-                  )
-client = APIClient(credentials)
+import ollama
+# credentials = Credentials(
+#                    url = "https://us-south.ml.cloud.ibm.com",
+#                   )
+# client = APIClient(credentials)
 
+# VerificationAgent Class is built to ensure accuracy and relevance of answer. 
+# It performs fact-checking and validating generated answers using retrieved documents ensuring AI-generated response is supported by factual evidence, free from contradictions, relevant to the original question.
 class VerificationAgent:
     def __init__(self):
         """
         Initialize the verification agent with the IBM WatsonX ModelInference.
         """
         # Initialize the WatsonX ModelInference
-        print("Initializing VerificationAgent with IBM WatsonX ModelInference...")
-        self.model = ModelInference(
-            model_id="ibm/granite-4-h-small", 
-            credentials=credentials,
-            project_id="skills-network",
-            params={
-                "max_tokens": 200,            # Adjust based on desired response length
-                "temperature": 0.0,           # Remove randomness for consistency
-            }
-        )
-        print("ModelInference initialized successfully.")
+        # print("Initializing VerificationAgent with IBM WatsonX ModelInference...")
+        # self.model = ModelInference(
+        #     model_id="ibm/granite-4-h-small", 
+        #     credentials=credentials,
+        #     project_id="skills-network",
+        #     params={
+        #         "max_tokens": 200,            # Adjust based on desired response length
+        #         "temperature": 0.0,           # Remove randomness for consistency (This is important because we want the report generated to always remain consistent and determistic)
+        #     }
+        # )
 
+        #print("ModelInferenceinitialized successfully.")
+
+        self.model = "llama3.2:latest"
+
+    #Purpose: Clean the LLM-response
     def sanitize_response(self, response_text: str) -> str:
         """
         Sanitize the LLM's response by stripping unnecessary whitespace.
         """
         return response_text.strip()
-
+    
+    #Purpose: Defines LLM persona or role with query and context 
     def generate_prompt(self, answer: str, context: str) -> str:
         """
         Generate a structured prompt for the LLM to verify the answer against the context.
@@ -65,6 +73,7 @@ class VerificationAgent:
         """
         return prompt
 
+    #Purpose: Parse AI generated verification report into a structured dictionary. That is extracts structured information from the AI's raw response.
     def parse_verification_response(self, response_text: str) -> Dict:
         """
         Parse the LLM's verification response into a structured dictionary.
@@ -106,6 +115,7 @@ class VerificationAgent:
             print(f"Error parsing verification response: {e}")
             return None
 
+    # Purpose: Format parsed verification response into a readable report
     def format_verification_report(self, verification: Dict) -> str:
         """
         Format the verification report dictionary into a readable paragraph.
@@ -135,7 +145,8 @@ class VerificationAgent:
             report += f"**Additional Details:** None\n"
 
         return report
-
+    
+    #Purpose:Build and run the verification pipeline using the methods defined above.
     def check(self, answer: str, documents: List[Document]) -> Dict:
         """
         Verify the answer against the provided documents.
@@ -153,7 +164,8 @@ class VerificationAgent:
         # Call the LLM to generate the verification report
         try:
             print("Sending prompt to the model...")
-            response = self.model.chat(
+            response = ollama.chat(
+                model = self.model,
                 messages=[
                     {
                         "role": "user",
@@ -168,7 +180,7 @@ class VerificationAgent:
 
         # Extract and process the LLM's response
         try:
-            llm_response = response['choices'][0]['message']['content'].strip()
+            llm_response = response['message']['content'].strip()
             print(f"Raw LLM response:\n{llm_response}")
         except (IndexError, KeyError) as e:
             print(f"Unexpected response structure: {e}")
@@ -220,3 +232,14 @@ class VerificationAgent:
             "verification_report": verification_report_formatted,
             "context_used": context
         }
+    
+
+# === Stand-alone execution entrypoint ===
+
+if __name__ == "__main__()":
+
+    #initialize agent
+    verifyAgent = VerificationAgent()
+
+    
+

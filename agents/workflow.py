@@ -4,7 +4,10 @@ from .research_agent import ResearchAgent
 from .verification_agent import VerificationAgent
 from .relevance_checker import RelevanceChecker
 from langchain.schema import Document
-from langchain.retrievers import EnsembleRetriever
+
+#Ensemble retreiver: hybrid search that integrates multiple retrievers e.g BM25 (sparse retriever) and Chroma or FAISS (dense retriever)
+# Handles both keyword-based and semantic-based queries (https://www.kaggle.com/code/ksmooi/langchain-ensembleretriever-quick-reference)
+from langchain.retrievers import EnsembleRetriever 
 import logging
 
 logger = logging.getLogger(__name__)
@@ -54,12 +57,17 @@ class AgentWorkflow:
         )
         return workflow.compile()
     
+    # Define Check Relevance Node
     def _check_relevance_step(self, state: AgentState) -> Dict:
-        retriever = state["retriever"]
+        
+        #get the ensembleRetriever from the AgentState
+        retriever = state["retriever"] 
+
+        #Classify the user query as "CAN_ANSWER", "PARTIAL", "NO_MATCH" using Inference model
         classification = self.relevance_checker.check(
-            question=state["question"], 
+            question=state["question"], #get question from state 
             retriever=retriever, 
-            k=20
+            k=20 #set number of documents to retrieve.
         )
 
         if classification == "CAN_ANSWER":
@@ -71,7 +79,8 @@ class AgentWorkflow:
             return {
                 "is_relevant": True
             }
-
+        
+        #If user query is not relevant to the retrieved documents, return the dictionary below which will be used to update the AgentState
         else:  # classification == "NO_MATCH"
             return {
                 "is_relevant": False,
@@ -111,7 +120,7 @@ class AgentWorkflow:
     
     def _research_step(self, state: AgentState) -> Dict:
         print(f"[DEBUG] Entered _research_step with question='{state['question']}'")
-        result = self.researcher.generate(state["question"], state["documents"])
+        result = self.researcher.generate(state["question"], state["documents"]) #pass the question and the retrieved documents as arguments to generate
         print("[DEBUG] Researcher returned draft answer.")
         return {"draft_answer": result["draft_answer"]}
     

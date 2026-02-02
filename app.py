@@ -1,3 +1,5 @@
+#====PURPOSE: GRADIO framework to provide a user-friendly interface for uploading documents, submitting queries, and retrieving AI-generated answers along with verification reports.
+
 import gradio as gr
 import hashlib
 from typing import List, Dict
@@ -23,9 +25,9 @@ EXAMPLES = {
 }
 
 def main():
-    processor = DocumentProcessor()
-    retriever_builder = RetrieverBuilder()
-    workflow = AgentWorkflow()
+    processor = DocumentProcessor() # initialize document processor to extract structured content from uploaded files
+    retriever_builder = RetrieverBuilder() #initialize hybrid retriever (BM25 + VectorSearch)
+    workflow = AgentWorkflow() # Initialize workflow to orchestrate the multi-agent processing pipeline using LangGraph.
 
     # Define custom CSS for styling
     css = """
@@ -81,6 +83,7 @@ def main():
     }
     """
 
+    #Create Gradio Interface
     with gr.Blocks(theme=gr.themes.Citrus(), title="DocChat 🐥", css=css, js=js) as demo:
         gr.Markdown("## DocChat: powered by Docling 🐥 and LangGraph", elem_classes="subtitle")
         gr.Markdown("# How it works ✨:", elem_classes="title")
