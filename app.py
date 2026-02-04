@@ -107,7 +107,7 @@ def main():
                     choices=list(EXAMPLES.keys()),
                     value=None,  # initially unselected
                 )
-                load_example_btn = gr.Button("Load Example 🛠️")
+                load_example_btn = gr.Button("Load Simple Example 🛠️")
 
                 # Standard input components
                 files = gr.Files(label="📄 Upload Documents", file_types=constants.ALLOWED_TYPES)

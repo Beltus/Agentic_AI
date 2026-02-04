@@ -4,10 +4,11 @@
 
 
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+#from langchain_openai import OpenAIEmbeddings
 from ibm_watsonx_ai.metanames import EmbedTextParamsMetaNames
 #from langchain_ibm import WatsonxEmbeddings
 from langchain_community.embeddings import OllamaEmbeddings
+#from langchain_ollama import OllamaEmbeddings
 from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
 from config.settings import settings
@@ -17,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 #Purpose: Implements hybrid retrieval system combining 1) BM25 (Lexical Search - keyword-based retrieval) and 2) Vector Search (Embedding-search; semantic retrieval using embeddings)
 #Why? Captures both exact keyword matches and semantically similar content
+
+# RetrieverBuilder takes your documents, converts to embeddings, stores in a Chroma Vectorbase, and returns a hybrid retriever that's allows use to do search and retrieve similar docs
+# from the vectorbase using hybrid retrieval system based on user query.
 
 class RetrieverBuilder:
     def __init__(self):

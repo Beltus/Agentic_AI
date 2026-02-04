@@ -4,7 +4,10 @@ import pickle
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
+from io import BytesIO
+from docling.datamodel.base_models import DocumentStream
 from docling.document_converter import DocumentConverter
+
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from config import constants
 from config.settings import settings
@@ -12,6 +15,11 @@ from utils.logging import logger
 
 
 #class responsible for handling document parsing, caching, and chunking.
+
+# The DocumentProcessor class ensures efficient document parsing and retrieval by leveraging:
+# Docling for structured content extraction
+# ChromaDB-compatible chunking for vector search
+# A caching system to avoid redundant processing
 class DocumentProcessor:
 
     #initialize document processor with 1) a predefined header structure for markdown-based chunking. 2) A cache directory for storing
@@ -26,10 +34,10 @@ class DocumentProcessor:
     #              3) Raises a 'ValueError' if the limit is exceeded.
     def validate_files(self, files: List) -> None:
         """Validate the total size of the uploaded files."""
-        total_size = sum(os.path.getsize(f.name) for f in files)
+        total_size = sum(f.size for f in files)
         if total_size > constants.MAX_TOTAL_SIZE:
             raise ValueError(f"Total size exceeds {constants.MAX_TOTAL_SIZE//1024//1024}MB limit")
-
+    
     #Purpose: Handles the entire document processing pipeline, including caching and deduplication
     #How it works:
     # 1) Validates the uploaded files
@@ -47,10 +55,11 @@ class DocumentProcessor:
         for file in files:
             try:
                 # Generate content-based hash for caching
-                with open(file.name, "rb") as f:
-                    file_hash = self._generate_hash(f.read())
+                # with open(file.name, "rb") as f:
+                #     file_hash = self._generate_hash(f.read())
+                file_hash = self._generate_hash(file.read())
                 
-                cache_path = self.cache_dir / f"{file_hash}.pkl"
+                cache_path = self.cache_dir / f"{file_hash}.pkl" #create path to cache path.
                 
                 #check if file is already cached and load from cache
                 if self._is_cache_valid(cache_path):
@@ -84,10 +93,18 @@ class DocumentProcessor:
         if not file.name.endswith(('.pdf', '.docx', '.txt', '.md')):
             logger.warning(f"Skipping unsupported file type: {file.name}")
             return []
+        
+        #Get the document bytes and wrap them in BytesIO "buffer"
+        file_bytes = BytesIO(file.getvalue())
+
+        #Create a Docling DocumentStream
+
+        source = DocumentStream(name=file.name, stream=file_bytes)
 
         #uses Docling 'DocumentConverter' to convert file to Markdown
         converter = DocumentConverter()
-        markdown = converter.convert(file.name).document.export_to_markdown()
+        result = converter.convert(source)
+        markdown = result.document.export_to_markdown()
 
         #Split extracted Markdown text into chunks
         splitter = MarkdownHeaderTextSplitter(self.headers)
@@ -113,7 +130,7 @@ class DocumentProcessor:
             data = pickle.load(f)
         return data["chunks"]
 
-    #Purpose: Check if cached file is stille valid (not expired)
+    #Purpose: Check if cached file is still valid (not expired)
     def _is_cache_valid(self, cache_path: Path) -> bool:
         if not cache_path.exists():
             return False
