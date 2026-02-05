@@ -96,6 +96,8 @@ class AgentWorkflow:
     def full_pipeline(self, question: str, retriever: EnsembleRetriever):
         try:
             print(f"[DEBUG] Starting full_pipeline with question='{question}'")
+
+            #Retrieve relevant documents (This is where query translation will come in)
             documents = retriever.invoke(question)
             logger.info(f"Retrieved {len(documents)} relevant documents (from .invoke)")
 
